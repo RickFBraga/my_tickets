@@ -3,8 +3,8 @@ import request from "supertest";
 import httpStatus from "http-status";
 import prisma from "database";
 import { faker } from "@faker-js/faker/.";
-import { getSpecificEvent } from "services/events-service";
 import { createNewTicket } from "services/tickets-service";
+import supertest from "supertest";
 
 beforeAll(async () => {
     await prisma.event.create({
@@ -17,8 +17,16 @@ beforeAll(async () => {
     await prisma.ticket.deleteMany();
 });
 
-describe("Tickets Controller", () => {
+const api = supertest(app);
 
+describe("GET /health", () => {
+    it("should return status code 200 and message", async () => {
+        const { status, text } = await api.get("/health");
+        expect(status).toBe(200);
+        expect(text).toBe("I'm okay!");
+    });
+});
+describe("Tickets Controller", () => {
     describe("GET /tickets/:eventId", () => {
         it("should return all tickets for a given event", async () => {
             const event = await prisma.event.findFirst();
