@@ -2,6 +2,9 @@ import prisma from "database";
 import app from "../src/index";
 import { createEventData } from "./factories/event.factory";
 import supertest from "supertest";
+import errorHandlerMiddleware, { ERRORS } from "middlewares/error-middleware";
+import { NextFunction, Request, Response } from "express";
+import httpStatus from "http-status";
 
 describe("Events API", () => {
     beforeEach(async () => {
@@ -28,6 +31,8 @@ describe("Events API", () => {
             );
         });
     });
+
+
 
     describe("GET /events/:id", () => {
         it("should return the specific event", async () => {
@@ -96,4 +101,54 @@ describe("Events API", () => {
 
 
     });
+
+    describe("DELETE /events/:id", () => {
+        it("should delete an event", async () => {
+            const event = await prisma.event.create({ data: createEventData() });
+
+            const response = await api.delete(`/events/${event.id}`);
+
+            expect(response.status).toBe(204);
+            const deletedEvent = await prisma.event.findFirst({ where: { id: event.id } });
+            expect(deletedEvent).toBeNull();
+        });
+    });
+
+    describe("errorHandlerMiddleware", () => {
+        const mockRequest = {} as Request;
+        const mockResponse = {
+            status: jest.fn().mockReturnThis(),
+            send: jest.fn(),
+        } as unknown as Response;
+        const mockNext = jest.fn() as NextFunction;
+
+        it("should return the correct status code and message for known error types", () => {
+            const error = { type: "unauthorized", message: "Unauthorized error" };
+
+            errorHandlerMiddleware(error, mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(ERRORS.unauthorized);
+            expect(mockResponse.send).toHaveBeenCalledWith("Unauthorized error");
+        });
+
+        it("should return 500 for unknown error types", () => {
+            const error = { type: "unknown_error", message: "Unknown error" };
+
+            errorHandlerMiddleware(error, mockRequest, mockResponse, mockNext);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(httpStatus.INTERNAL_SERVER_ERROR);
+            expect(mockResponse.send).toHaveBeenCalledWith("Unknown error");
+        });
+
+        it("should log the error", () => {
+            const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => { });
+            const error = { type: "conflict", message: "Conflict error" };
+
+            errorHandlerMiddleware(error, mockRequest, mockResponse, mockNext);
+
+            expect(consoleSpy).toHaveBeenCalledWith(error);
+            consoleSpy.mockRestore();
+        });
+    });
+
 });

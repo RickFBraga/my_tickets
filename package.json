@@ -9,7 +9,7 @@
     "dev": "ts-node-dev src/index.ts",
     "migration:run": "prisma migrate deploy",
     "test": "dotenv -e .env.test jest",
-     "test:coverage": "dotenv -e .env.test jest --coverage",
+    "test:coverage": "dotenv -e .env.test jest --coverage",
     "test:migration:run": "dotenv -e .env.test prisma migrate deploy"
   },
   "keywords": [],
